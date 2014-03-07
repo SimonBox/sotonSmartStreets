@@ -1,0 +1,75 @@
+# Takes the latitude and longitude, and an optional range, returns a list of accidents in the range
+# (Returned accidents are lists, comprising of [date, latitude, longitude, severity])
+# (For severity, 1 = Fatal, 2 = Serious, 3 = Slight)
+def getAccidentData(latitude, longitude, range=0):
+
+    # Open accident data set for querying
+    af = open('accidents.csv', 'r')
+    is_first_line = True
+    
+    output_list = []
+    
+    # Have seperate output lists for the accident severities - more memory, but less potentially costly list operations
+    output_list_slight = []
+    output_list_serious = []
+    output_list_fatal = []
+    
+    for line in af:
+        
+        if is_first_line:
+            is_first_line = False
+            continue
+        
+        value_list = line.split(',')
+        
+        # Check the latitude and longitude match, or if a range is given, whether the accident is
+        # within range of the lat and long
+        
+        if float(value_list[4]) >= latitude-range and float(value_list[4]) <= latitude+range:
+            if float(value_list[3]) >= longitude-range and float(value_list[3]) <= longitude+range:
+                vf = open('vehicles.csv', 'r')
+                is_first_line = True
+                
+                for line_v in vf:
+                
+                    if is_first_line:
+                        is_first_line = False
+                        continue
+                
+                    # Now check that the accident code is actually referring to a bicycle accident
+                    value_v_list = line_v.split(',')
+                    
+                    # First check accident codes are the same
+                    if value_list[0] == value_v_list[0]:
+                    
+                        # ...then check if the accident actually relates to a bicycle (Vehicle_Type == 1)
+                        if int(value_v_list[2]) == 1:
+                            need_to_know_values = []
+                            
+                            # Add the need-to-know values to be returned
+                            # Date
+                            need_to_know_values.append(value_list[9])
+                            # Latitude
+                            need_to_know_values.append(float(value_list[4]))
+                            # Longitude
+                            need_to_know_values.append(float(value_list[3]))
+                            # Severity
+                            need_to_know_values.append(int(value_list[6]))
+                        
+                            # Finally, check the accident severity, and put the values in their corresponding list
+                            if int(value_list[6]) == 3:
+                                output_list_slight.append(need_to_know_values)
+                            elif int(value_list[6]) == 2:
+                                output_list_serious.append(need_to_know_values)
+                            elif int(value_list[6]) == 1:
+                                output_list_slight.append(need_to_know_values)
+                            
+                            break
+                            
+                vf.close()
+    
+    # Order the accidents
+    output_list = output_list + output_list_slight + output_list_serious + output_list_fatal
+    
+    # And return them
+    return output_list
